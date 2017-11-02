@@ -7,7 +7,10 @@
       manageiq_database:
         state: present
     - pause:
-        minutes: 1
+        minutes: 3
     - name: test database absent
       manageiq_database:
         state: absent
+    - pause:
+        minutes: 3
+
