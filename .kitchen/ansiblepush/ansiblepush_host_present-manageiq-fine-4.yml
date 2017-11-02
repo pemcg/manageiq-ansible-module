@@ -1,5 +1,0 @@
----
-present-manageiq-fine-4:
-  ansible_ssh_host: localhost
-  ansible_ssh_port: 32883
-  ansible_ssh_private_key_file: "/home/abraverm/GitHub/manageiq-ansible-module/.kitchen/docker_id_rsa"
