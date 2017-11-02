@@ -1,0 +1,4 @@
+---
+username: kitchen
+ssh_key: "/home/abraverm/GitHub/manageiq-ansible-module/.kitchen/docker_id_rsa"
+last_error: Kitchen::ActionFailed

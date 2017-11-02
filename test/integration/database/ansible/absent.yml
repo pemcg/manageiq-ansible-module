@@ -1,0 +1,13 @@
+---
+- name: "Absent"
+  hosts: all
+  become: true
+  tasks:
+    - name: test create simple internal database
+      manageiq_database:
+        state: present
+    - pause:
+        minutes: 1
+    - name: test database absent
+      manageiq_database:
+        state: absent

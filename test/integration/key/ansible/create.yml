@@ -1,0 +1,8 @@
+---
+- name: "Create Key"
+  hosts: all
+  become: true
+  tasks:
+    - name: test create local key
+      manageiq_key:
+        force_key: true

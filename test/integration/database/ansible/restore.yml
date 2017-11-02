@@ -1,0 +1,46 @@
+---
+- name: "Database"
+  hosts: all
+  become: true
+  tasks:
+    - name: test create simple internal database
+      manageiq_database:
+        state: present
+    - pause:
+        minutes: 3
+    - name: create test user
+      uri:
+        url: https://localhost/api/users
+        validate_certs: no
+        user: admin
+        password: smartvm
+        method: POST
+        body_format: json
+        body:
+          userid: test
+          password: secret
+          name: test
+          group:
+            id: 1000000000002
+    - name: test database backup to local file
+      manageiq_database:
+        state: backup
+    - pause:
+        minutes: 1
+    - name: test database absent
+      manageiq_database:
+        state: absent
+    - name: test create simple internal database
+      manageiq_database:
+        state: present
+    - pause:
+        minutes: 3
+    - name: test database restore from local file
+      manageiq_database:
+        state: restore
+    - name: start EVM service
+      service:
+        name: evmserverd
+        state: started
+    - pause:
+        minutes: 3

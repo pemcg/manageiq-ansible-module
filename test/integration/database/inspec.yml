@@ -1,0 +1,8 @@
+---
+name: database
+title: ManageIQ database module for Ansible
+maintainer: Alexander Braverman Masis <abraverm@redhat.com>
+summary: ManageIQ appliance database management using Ansible
+version: 0.0.1
+supports:
+  - os-family: redhat

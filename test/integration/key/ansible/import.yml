@@ -1,0 +1,12 @@
+---
+- name: "Import Key"
+  hosts: all
+  become: true
+  tasks:
+    - name: Import remote key
+      manageiq_key:
+        fetch_key: true
+        hostname: manageiq_master
+        sshlogin: root
+        sshpassword: smartvm
+        force_key: true

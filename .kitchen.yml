@@ -1,0 +1,95 @@
+---
+driver:
+  name: docker
+  socket: unix:///var/run/docker.sock
+  privileged: true
+  use_sudo: false
+  hostname: "simple"
+  username: root
+
+provisioner:
+  name: ansible_push
+  chef_bootstrap_url: nil
+  ansible_config: "test/ansible.cfg"
+  idempotency_test: false
+  diff: true
+  verbose: 'vv'
+
+platforms:
+  - name: manageiq-fine-4
+    driver:
+      run_command: /usr/sbin/init
+      run_options: --tty -e 'container=docker'
+      image: manageiq/manageiq:fine-4
+      platform: centos
+      publish_all: true
+      provision_command:
+        - sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+        - systemctl enable sshd
+        - /usr/bin/systemctl disable appliance-initialize evmserverd evminit evm-watchdog miqvmstat miqtop
+        - rm -rf /var/www/miq/vmdb/certs/*
+      volume:
+        - /sys/fs/cgroup:/sys/fs/cgroup:ro
+
+verifier:
+  name: inspec
+
+suites:
+  - name: database-present
+    provisioner:
+      playbook: "test/integration/database/ansible/present.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/database
+      controls:
+        - database-01
+
+  - name: database-absent
+    provisioner:
+      playbook: "test/integration/database/ansible/absent.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/database
+      controls:
+        - database-02
+
+  - name: database-backup
+    provisioner:
+      playbook: "test/integration/database/ansible/backup.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/database
+      controls:
+        - database-03
+
+  - name: database-restore
+    provisioner:
+      playbook: "test/integration/database/ansible/restore.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/database
+      controls:
+        - database-05
+
+  - name: database-reset
+    provisioner:
+      playbook: "test/integration/database/ansible/reset.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/database
+      controls:
+        - database-04
+
+  - name: key-create
+    provisioner:
+      playbook: "test/integration/key/ansible/create.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/key
+      controls:
+        - key-01
+
+
+# TODO:
+# - name: key-import
+

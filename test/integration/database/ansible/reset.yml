@@ -1,0 +1,33 @@
+---
+- name: "Database Reset"
+  hosts: all
+  become: true
+  tasks:
+    - name: test create simple internal database
+      manageiq_database:
+        state: present
+    - pause:
+        minutes: 3
+    - name: create test user
+      uri:
+        url: https://localhost/api/users
+        validate_certs: no
+        user: admin
+        password: smartvm
+        method: POST
+        body_format: json
+        body:
+          userid: test
+          password: secret
+          name: test
+          group:
+            id: 1000000000002
+    - name: test reseting the database
+      manageiq_database:
+        state: reset
+    - name: start EVM
+      service:
+        name: evmserverd
+        state: started
+    - pause:
+        minutes: 3

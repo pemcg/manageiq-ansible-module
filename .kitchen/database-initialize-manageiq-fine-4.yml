@@ -1,0 +1,9 @@
+---
+username: root
+ssh_key: "/home/abraverm/GitHub/manageiq-ansible-module/.kitchen/docker_id_rsa"
+image_id: 5fb4af976145
+container_id: 3b8e652118c65b6278857ea8f783822a64aff3bdf774a03f126951ca32b6c203
+hostname: localhost
+port: 32796
+last_action: verify
+last_error: 

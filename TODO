@@ -1,0 +1,10 @@
+TODO
+====
+
+ * Support multinode test environment.
+   Depends on: https://github.com/test-kitchen/test-kitchen/issues/873
+   Affected use cases:
+    - manageiq_key import - requires initialized server to import keys from
+ * Avoid using 'pause', the modules should finish when the system is ready
+   for next operation.
+ * Fix idempotency of modules
