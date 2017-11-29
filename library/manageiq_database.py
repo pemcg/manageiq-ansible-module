@@ -37,10 +37,6 @@ author: "Alex Braverman Masis (@abraverm)"
 requirements:
     - appliance_console_cli
 options:
-    internal:
-        description: Should ManageIQ appliance database be self hosted (internal).
-        default: True
-        type: bool
     region:
         description: ManageIQ region the database assosieted with.
         default: 0
@@ -153,16 +149,21 @@ def db_state(module):
 
 
 def db_state_validate(module, db_state, configured, exists):
+    state = True
+    message = "All good"
     if configured != db_state['configured']:
+        state = False
         if configured:
-            module.fail_json(msg='Database need to be configured first')
+            message = 'Database need to be configured first'
         else:
-            module.fail_json(msg='Database is already configured')
+            message = 'Database is already configured'
     if exists != db_state['exists']:
+        state = False
         if exists:
-            module.fail_json(msg='Databse is not running or deployed correctly')
+            message = 'Databse is not running or deployed correctly'
         else:
-            module.fail_json(msg='Databse already exists')
+            message = 'Databse already exists'
+    return (state, message)
 
 
 def db_destroy(module, db_state):
@@ -192,10 +193,15 @@ def db_destroy(module, db_state):
 
 
 def db_reset(module, db_state):
-    db_state_validate(module, db_state, configured=True, exists=True)
-    stop_evm(module)
-    run_command(module, ['bin/rake', 'evm:db:reset'])
-    module.exit_json(changed=True, stdout="EVM database was reset successfuly")
+    valid, msg = db_state_validate(module, db_state, configured=True,
+                                   exists=True)
+    if valid:
+        stop_evm(module)
+        run_command(module, ['bin/rake', 'evm:db:reset'])
+        module.exit_json(changed=True,
+                         stdout="EVM database was reset successfuly")
+    else:
+        module.fail_json(msg='Failed to reset: ' + msg)
 
 
 def db_backup(*args):
@@ -213,21 +219,27 @@ def db_backup_restore(action, module, db_state):
     password = module.params['backup_password']
     dbname = module.params['dbname']
 
-    db_state_validate(module, db_state, configured=True, exists=True)
-    stop_evm(module)
-    if location == 'remote':
-        cmd = ['bin/rake', "evm:db:%s:%s" % (action, location), '--',
-               '--dbname', dbname, '--uri', path, '--uri-username', username,
-               '--uri-password', password]
-    elif location == 'local':
-        cmd = ['bin/rake', "evm:db:%s:%s" % (action, location), '--',
-               '--local-file', path, '--dbname', dbname]
+    valid, msg = db_state_validate(module, db_state, configured=True,
+                                   exists=True)
+    if valid:
+        stop_evm(module)
+        if location == 'remote':
+            cmd = ['bin/rake', "evm:db:%s:%s" % (action, location), '--',
+                   '--dbname', dbname, '--uri', path, '--uri-username',
+                   username, '--uri-password', password]
+        elif location == 'local':
+            cmd = ['bin/rake', "evm:db:%s:%s" % (action, location), '--',
+                   '--local-file', path, '--dbname', dbname]
+        else:
+            module.fail_json(
+                msg="Unknown location '%s', only 'remote' and"
+                " 'local' are supported")
+        rc, out = run_command(module, cmd)
+        module.exit_json(changed=True,
+                         stdout="Database %s was %s to %s" % (
+                             dbname, action, path))
     else:
-        module.fail_json(
-            msg="Unknown location '%s', only 'remote' and 'local' are supported")
-    rc, out = run_command(module, cmd)
-    module.exit_json(changed=True,
-                     stdout="Database %s was %s to %s" % (dbname, action, path))
+        module.fail_json(msg='Failed to backup: ' + msg)
 
 
 def main():
@@ -256,21 +268,26 @@ def main():
     elif state in ['present', 'internal', 'external']:
         cmd = CMD_NAME
         region = module.params['region']
-        db_state_validate(module, system_state, configured=False, exists=False)
-        if state in ['present', 'internal']:
-            cmd += " --internal --region=%d" % module.params['region']
-        else:
-            with open("%s/REGION" % VMDB, 'w') as region_file:
-                region_file.write(str(region))
+        valid, msg = db_state_validate(module, system_state,
+                                       configured=False, exists=False)
+        if valid:
+            if state in ['present', 'internal']:
+                cmd += " --internal --region=%d" % module.params['region']
+            else:
+                with open("%s/REGION" % VMDB, 'w') as region_file:
+                    region_file.write(str(region))
 
-        for arg in VALUED_ARGS:
-            if module.params[arg] is not None and module.params[arg] != '':
-                cmd += " --{}={}".format(arg, module.params[arg])
-        changed, stdout, sdterr = module.run_command(cmd)
-        changed = False if "already exists" in stdout else True
-        if stderr != '' or 'Failed' in stdout:
-            module.fail_json(msg="%s\n%s\n%s" % (cmd, stdout, stderr))
-        module.exit_json(changed=changed, cmd=cmd, stdout=stdout, stderr=stderr)
+            for arg in VALUED_ARGS:
+                if module.params[arg] is not None and module.params[arg] != '':
+                    cmd += " --{}={}".format(arg, module.params[arg])
+            changed, stdout, sdterr = module.run_command(cmd)
+            changed = False if "already exists" in stdout else True
+            if stderr != '' or 'Failed' in stdout or 'error' in stdout:
+                module.fail_json(msg="%s\n%s\n%s" % (cmd, stdout, stderr))
+            module.exit_json(changed=changed, cmd=cmd, stdout=stdout,
+                             stderr=stderr)
+        else:
+            module.exit_json(changed=False, stdout=msg)
     else:
         module.fail_json(msg="unknown state: '%s'" % state)
 
