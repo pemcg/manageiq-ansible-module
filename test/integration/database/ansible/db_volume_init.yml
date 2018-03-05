@@ -1,0 +1,27 @@
+---
+- name: cfme-5.9 volume for database - unmount home
+  mount:
+    path: /home
+    state: absent
+- name: cfme-5.9 volume for database - remove home volume
+  lvol:
+    vg: VG-CFME
+    lv: lv_home
+    state: absent
+    force: yes
+- name: cfme-5.9 volume for database - create DB volume
+  lvol:
+    vg: VG-CFME
+    lv: lv_db
+    size: 1G
+    state: present
+- name: cfme-5.9 volume for database - create DB volume
+  filesystem:
+    fstype: xfs
+    dev: /dev/mapper/VG--CFME-lv_db
+- name: cfme-5.9 volume for database - mount db volume
+  mount:
+    src: /dev/mapper/VG--CFME-lv_db
+    path: /var/opt/rh/rh-postgresql95/lib/pgsql
+    state: mounted
+    fstype: xfs

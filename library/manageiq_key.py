@@ -75,7 +75,6 @@ RETURN = ''' # '''
 from ansible.module_utils.basic import AnsibleModule
 from os import path
 
-CMD_NAME = '/usr/bin/appliance_console_cli'
 VMDB = '/var/www/miq/vmdb'
 
 
@@ -87,13 +86,15 @@ def main():
             hostname=dict(type='str'),
             sshlogin=dict(type='str'),
             sshpassword=dict(type='str', no_log=True),
+            cli_path=dict(default='/opt/rh/cfme-gemset/bin/appliance_console_cli',
+                type='str')
         ),
         required_if=[
             ['fetch_key', True, ['hostname', 'sshlogin', 'sshpassword']]
         ]
     )
 
-    cmd = CMD_NAME
+    cmd = module.params['cli_path']
     if module.params['fetch_key']:
         cmd += " --fetch-key=%s" % module.params['hostname']
         cmd += " --sshlogin={} --sshpassword={}".format(

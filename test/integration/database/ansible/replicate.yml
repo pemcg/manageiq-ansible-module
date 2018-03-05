@@ -1,0 +1,19 @@
+---
+- name: "Replicate"
+  hosts: all
+  become: true
+  tasks:
+    - include: db_volume_init.yml
+    - name: create standalone internal database
+      manageiq_database:
+        state: present
+        standalone: true
+    - name: create master of replication
+      manageiq_database:
+        state: replicate
+        replication: primary
+        cluster_node_number: 1
+        username: root
+        password: smartvm
+        dbname: vmdb_production
+        primary_host: "{{ ansible_ssh_host }}"

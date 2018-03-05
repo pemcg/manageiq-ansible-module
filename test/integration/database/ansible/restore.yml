@@ -3,6 +3,7 @@
   hosts: all
   become: true
   tasks:
+    - include: db_volume_init.yml
     - name: test create simple internal database
       manageiq_database:
         state: present
