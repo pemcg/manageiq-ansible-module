@@ -3,4 +3,6 @@
 
 # Kitchen
 .kitchen/
+
+# Ruby
 Gemfile.lock

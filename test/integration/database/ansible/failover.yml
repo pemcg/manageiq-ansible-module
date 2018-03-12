@@ -1,0 +1,28 @@
+---
+- name: "Failover"
+  hosts: all
+  become: true
+  tasks:
+    - include: db_volume_init.yml
+    - file:
+        path: /var/opt/rh/rh-postgresql95/lib/pgsql/data
+        owner: postgres
+        group: postgres
+        state: directory
+    - include_vars:
+        dir: ../../../../.kitchen/
+        files_matching: 'database-replicate.*.yml'
+        name: primary
+    - wait_for:
+        host: "{{ primary.hostname }}"
+        port: 443
+    - name: create standby of replication
+      manageiq_database:
+        state: replicate
+        replication: standby
+        cluster_node_number: 2
+        username: root
+        password: smartvm
+        dbname: vmdb_production
+        primary_host: "{{ primary.hostname }}"
+        standby_host: "{{ ansible_ssh_host }}"

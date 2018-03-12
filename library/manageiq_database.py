@@ -87,16 +87,17 @@ import shutil
 from ansible.module_utils.basic import AnsibleModule
 
 VMDB = '/var/www/miq/vmdb'
-CMD_NAME = '/usr/bin/appliance_console_cli'
-VALUED_ARGS = ['dbdisk', 'username', 'password', 'hostname', 'dbname']
+VALUED_ARGS = ['dbdisk', 'username', 'password', 'dbname']
 ENV = dict(DISABLE_DATABASE_ENVIRONMENT_CHECK='1')
 
 
 def manageiq_db_arg_spec():
     return dict(
-        state=dict(default='internal', type='str'),
+        state=dict(default='internal', choices=['internal', 'present',
+        'external', 'absent', 'destroy', 'backup', 'restore', 'reset',
+        'replicate']),
         region=dict(default=1, type='int'),
-        dbdisk=dict(type='str'),
+        dbdisk=dict(default=None, type='str'),
         username=dict(default='root', type='str', no_log=True),
         password=dict(default='smartvm', type='str', no_log=True),
         hostname=dict(default='localhost', type='str'),
@@ -105,8 +106,17 @@ def manageiq_db_arg_spec():
         backup_username=dict(default='root', type='str', no_log=True),
         backup_password=dict(default='smartvm', type='str', no_log=True),
         backup_location=dict(default='local', type='str'),
+        db_hourly_maintenance=dict(default=False, type='bool'),
+        standalone=dict(default=False, type='bool'),
+        auto_failover=dict(default=False, type='bool'),
+        replication=dict(default=None, type='str', choices=['primary', 'standby']),
+        primary_host=dict(default=None, type='str'),
+        standby_host=dict(default=None, type='str'),
+        cluster_node_number=dict(default=None, type='int'),
         pg_data_path=dict(
             default='/var/opt/rh/rh-postgresql95/lib/pgsql/data/',
+            type='str'),
+        cli_path=dict(default='/opt/rh/cfme-gemset/bin/appliance_console_cli',
             type='str')
     )
 
@@ -244,13 +254,17 @@ def db_backup_restore(action, module, db_state):
 
 def main():
     module = AnsibleModule(
-        argument_spec=manageiq_db_arg_spec()
+        argument_spec=manageiq_db_arg_spec(),
+        required_if=[
+            [ "state", "replicate", [ "replication", "cluster_node_number", "primary_host"]],
+            [ "replication", "standby", [ "standby_host", "auto_failover"]]
+        ]
         # Due to a bug, region means creating a region and not connecting to
         # http://talk.manageiq.org/t/setup-region-join-region-in-darga/1654/6
     )
 
-    if not os.path.exists(CMD_NAME):
-        module.fail_json(msg="Cannot find %s" % CMD_NAME)
+    if not os.path.exists(module.params['cli_path']):
+        module.fail_json(msg="Cannot find %s" % module.params['cli_path'])
 
     state = module.params['state']
     system_state = db_state(module)
@@ -265,8 +279,23 @@ def main():
         db_backup(module, system_state)
     elif state == 'restore':
         db_restore(module, system_state)
+    elif state == 'replicate':
+        cmd = module.params['cli_path']
+        cmd += " --replication=%s --primary-host=%s --cluster-node-number=%s" %(module.params['replication'], module.params['primary_host'], module.params['cluster_node_number'])
+        if module.params['replication'] == 'standby':
+            cmd += " --standby-host=%s --auto-failover" % module.params['standby_host']
+        for arg in VALUED_ARGS:
+            if module.params[arg] is not None and module.params[arg] != '':
+                cmd += " --{}={}".format(arg, module.params[arg])
+        if os.path.exists('/etc/repmgr.conf'):
+            changed = False
+        else:
+            changed, stdout, sdterr = module.run_command(cmd)
+        if stderr != '' or 'Failed' in stdout:
+            module.fail_json(msg="%s\n%s\n%s" % (cmd, stdout, stderr))
+        module.exit_json(changed=changed, cmd=cmd, stdout=stdout, stderr=stderr)
     elif state in ['present', 'internal', 'external']:
-        cmd = CMD_NAME
+        cmd = module.params['cli_path']
         region = module.params['region']
         valid, msg = db_state_validate(module, system_state,
                                        configured=False, exists=False)
@@ -288,6 +317,23 @@ def main():
                              stderr=stderr)
         else:
             module.exit_json(changed=False, stdout=msg)
+            with open("%s/REGION" % VMDB, 'w') as region_file:
+                region_file.write(str(region))
+
+        if module.params['standalone']:
+            cmd += " --standalone"
+
+        if module.params['db_hourly_maintenance']:
+            cmd += " --db-hourly-maintenance"
+
+        for arg in VALUED_ARGS:
+            if module.params[arg] is not None and module.params[arg] != '':
+                cmd += " --{}={}".format(arg, module.params[arg])
+        changed, stdout, sdterr = module.run_command(cmd)
+        changed = False if "already exists" in stdout else True
+        if stderr != '' or 'Failed' in stdout:
+            module.fail_json(msg="%s\n%s\n%s" % (cmd, stdout, stderr))
+        module.exit_json(changed=changed, cmd=cmd, stdout=stdout, stderr=stderr)
     else:
         module.fail_json(msg="unknown state: '%s'" % state)
 

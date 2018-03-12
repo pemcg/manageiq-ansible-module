@@ -1,5 +1,5 @@
 ---
-- name: "Backup"
+- name: "Standalone"
   hosts: all
   become: true
   tasks:
@@ -7,8 +7,4 @@
     - name: test create simple internal database
       manageiq_database:
         state: present
-    - pause:
-        minutes: 1
-    - name: test database backup to local file
-      manageiq_database:
-        state: backup
+        standalone: true

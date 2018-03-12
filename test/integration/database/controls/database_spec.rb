@@ -9,7 +9,7 @@ control 'database-01' do
     its('exit_status') { should eq 0 }
   end
   describe processes('postgres') do
-    its('list.length') { should >= 0 }
+    its('entries.length') { should >= 0 }
   end
 end
 
@@ -17,7 +17,7 @@ control 'database-02' do
   impact 1.0
   title 'Database absent'
   describe processes('postgres') do
-    its('list.length') { should eq 0 }
+    its('entries.length') { should eq 0 }
   end
   describe service('evmserverd') do
     it { should_not be_running }
@@ -43,8 +43,7 @@ control 'database-04' do
   title 'Database reset'
   describe http('https://localhost/api/users',
                 auth: {user: 'admin', pass: 'smartvm'},
-                method: 'GET', ssl_verify: false,
-                enable_remote_worker: true) do
+                method: 'GET', ssl_verify: false) do
     its('body') { should match /"count":1/ }
     its('status') { should eq 200 }
 
@@ -56,9 +55,21 @@ control 'database-05' do
   title 'Database restore'
   describe http('https://localhost/api/users/1000000000002',
                 auth: {user: 'admin', pass: 'smartvm'},
-                method: 'GET', ssl_verify: false,
-                enable_remote_worker: true) do
+                method: 'GET', ssl_verify: false) do
     its('status') { should eq 200 }
 
   end
 end
+
+control 'database-06' do
+  impact 1.0
+  title 'Database replicate'
+  describe file('/etc/repmgr.conf') do
+    it { should exist }
+  end
+  describe processes('postgres') do
+    its('entries.length') { should >= 0 }
+  end
+end
+
+
