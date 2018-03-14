@@ -257,7 +257,8 @@ def main():
         argument_spec=manageiq_db_arg_spec(),
         required_if=[
             [ "state", "replicate", [ "replication", "cluster_node_number", "primary_host"]],
-            [ "replication", "standby", [ "standby_host", "auto_failover"]]
+            [ "replication", "standby", [ "standby_host", "auto_failover"]],
+            [ "state", "present", ["hostname"]]
         ]
         # Due to a bug, region means creating a region and not connecting to
         # http://talk.manageiq.org/t/setup-region-join-region-in-darga/1654/6
@@ -303,6 +304,7 @@ def main():
             if state in ['present', 'internal']:
                 cmd += " --internal --region=%d" % module.params['region']
             else:
+                cmd += " --hostname=%s" % module.params['hostname']
                 with open("%s/REGION" % VMDB, 'w') as region_file:
                     region_file.write(str(region))
 
