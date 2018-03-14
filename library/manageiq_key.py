@@ -106,7 +106,7 @@ def main():
         if module.params['force_key']:
             cmd += ' --force-key'
         else:
-            module.exit_json(changed=False, stdoug='Key exists')
+            module.exit_json(changed=False, stdout='Key exists')
 
     result, env, err = module.run_command('/usr/bin/env')
     result, out, err = module.run_command(cmd)

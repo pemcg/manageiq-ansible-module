@@ -104,6 +104,16 @@ suites:
       controls:
         - database-06
 
+  - name: database-external
+    provisioner:
+      playbook: "test/integration/database/ansible/external.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/database
+      controls:
+        - database-01
+
+
   - name: key-create
     provisioner:
       playbook: "test/integration/key/ansible/create.yml"
