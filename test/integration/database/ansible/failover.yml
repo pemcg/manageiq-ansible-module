@@ -3,18 +3,13 @@
   hosts: all
   become: true
   tasks:
-    - include: db_volume_init.yml
     - file:
         path: /var/opt/rh/rh-postgresql95/lib/pgsql/data
         owner: postgres
         group: postgres
         state: directory
-    - include_vars:
-        dir: ../../../../.kitchen/
-        files_matching: 'database-replicate.*.yml'
-        name: primary
     - wait_for:
-        host: "{{ primary.hostname }}"
+        host: database-primary
         port: 443
     - name: create standby of replication
       manageiq_database:
@@ -24,5 +19,6 @@
         username: root
         password: smartvm
         dbname: vmdb_production
-        primary_host: "{{ primary.hostname }}"
+        primary_host: database-primary
         standby_host: "{{ ansible_ssh_host }}"
+        cli_path: /usr/local/bin/appliance_console_cli

@@ -3,26 +3,24 @@
   hosts: all
   become: true
   tasks:
-    - include_vars:
-        dir: ../../../../.kitchen/
-        files_matching: 'database-replicate.*.yml'
-        name: primary
     - wait_for:
-        host: "{{ primary.hostname }}"
+        host: database-primary 
         port: 443
     - name: install key
       manageiq_key:
         fetch_key: true
-        hostname: "{{ primary.hostname }}"
+        hostname: database-primary
         sshlogin: root
         sshpassword: smartvm
+        cli_path: /usr/local/bin/appliance_console_cli
     - name: connect to database
       manageiq_database:
         state: external
         region: 0
         username: root 
         password: smartvm
-        hostname: "{{ primary.hostname }}"
+        hostname: database-primary
+        cli_path: /usr/local/bin/appliance_console_cli
     - name: wait for initialization to finish
       wait_for:
         port: 443

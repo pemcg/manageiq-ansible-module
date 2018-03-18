@@ -1,0 +1,59 @@
+---
+sudo: required
+services:
+  - docker
+
+language: python
+python: "2.7"
+
+env:
+  global:
+    - LANG="en_US.UTF-8"
+    - ANSIBLE_CONFIG="test/ansible.cfg"
+  matrix:
+  - TEST="database-integration"
+  - TEST="database-present"
+  - TEST="database-absent"
+  - TEST="database-backup"
+  - TEST="database-restore"
+  - TEST="database-reset"
+  - TEST="database-standalone"
+  - TEST="key-create"
+
+cache: pip
+
+before_install:
+  # Make sure everything's up to date.
+  - sudo locale-gen en_US.UTF-8
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq python-apt python-pycurl git python-pip ruby ruby-dev build-essential autoconf
+  - gem install bundler
+
+install:
+  # Install Test Kitchen and its dependencies
+  - bundle install
+
+  # Install Ansible
+  - pip install ansible ansible-lint
+
+  # versions
+  - ansible --version
+  - docker version
+  - bundle show
+  - bundle exec kitchen --version
+
+script:
+  - if [ "$TEST" = "database-integration" ]; then "test/${TEST}.sh"; else bundle exec kitchen test -t always $TEST; fi
+
+after_failure:
+  - ls -la logs/
+  - cat logs/*
+
+after_success:
+  - echo "Success"
+
+notifications:
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/
+  irc:
+    channels:
+      - "chat.freenode.net#abraverm-manageiq-ansible-modules"
