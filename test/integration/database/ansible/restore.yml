@@ -3,12 +3,20 @@
   hosts: all
   become: true
   tasks:
-    - include: db_volume_init.yml
-    - name: test create simple internal database
+    - name: create simple internal database
       manageiq_database:
         state: present
-    - pause:
-        minutes: 3
+        cli_path: /usr/local/bin/appliance_console_cli
+    - wait_for:
+        port: 443
+    - uri:
+        url: "https://localhost"
+        status_code: 200
+        validate_certs: no
+      register: result
+      until: result.status == 200
+      retries: 60
+      delay: 1
     - name: create test user
       uri:
         url: https://localhost/api/users
@@ -23,25 +31,33 @@
           name: test
           group:
             id: 1000000000002
-    - name: test database backup to local file
+    - name: database backup to local file
       manageiq_database:
         state: backup
+        cli_path: /usr/local/bin/appliance_console_cli
     - pause:
         minutes: 1
-    - name: test database absent
+    - name: database absent
       manageiq_database:
         state: absent
+        cli_path: /usr/local/bin/appliance_console_cli
     - name: test create simple internal database
       manageiq_database:
         state: present
+        cli_path: /usr/local/bin/appliance_console_cli
+    - wait_for:
+        port: 443
     - pause:
-        minutes: 3
+        minutes: 1
     - name: test database restore from local file
       manageiq_database:
         state: restore
+        cli_path: /usr/local/bin/appliance_console_cli
     - name: start EVM service
       service:
         name: evmserverd
         state: started
+    - wait_for:
+        port: 443
     - pause:
-        minutes: 3
+        minutes: 1

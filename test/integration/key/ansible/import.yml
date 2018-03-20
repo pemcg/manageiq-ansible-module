@@ -10,3 +10,4 @@
         sshlogin: root
         sshpassword: smartvm
         force_key: true
+        cli_path: /usr/local/bin/appliance_console_cli

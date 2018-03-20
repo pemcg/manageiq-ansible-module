@@ -3,15 +3,16 @@
   hosts: all
   become: true
   tasks:
-    - include: db_volume_init.yml
     - name: test create simple internal database
       manageiq_database:
         state: present
+        cli_path: /usr/local/bin/appliance_console_cli
     - pause:
         minutes: 3
     - name: test database absent
       manageiq_database:
         state: absent
+        cli_path: /usr/local/bin/appliance_console_cli
     - pause:
         minutes: 3
 

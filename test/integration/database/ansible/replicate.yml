@@ -3,11 +3,11 @@
   hosts: all
   become: true
   tasks:
-    - include: db_volume_init.yml
     - name: create standalone internal database
       manageiq_database:
         state: present
         standalone: true
+        cli_path: /usr/local/bin/appliance_console_cli
     - name: create master of replication
       manageiq_database:
         state: replicate
@@ -17,3 +17,4 @@
         password: smartvm
         dbname: vmdb_production
         primary_host: "{{ ansible_ssh_host }}"
+        cli_path: /usr/local/bin/appliance_console_cli

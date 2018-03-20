@@ -1,14 +1,11 @@
 ---
 driver:
-  name: openstack
-  openstack_username: '<%= ENV["OS_USERNAME"] %>'
-  openstack_api_key: '<%= ENV["OS_PASSWORD"] %>'
-  openstack_auth_url: '<%= ENV["OS_AUTH_URL"] %>'
-  openstack_tenant: '<%= ENV["OS_PROJECT"] %>'
-  floating_ip_pool: '<%= ENV["OS_FIP_POOL"] %>'
-  allocate_floating_ip: true
-  disable_ssl_validation: true
-  server_name_prefix: '<%= ENV["PREFIX"] %>'
+  name: docker
+  socket: unix:///var/run/docker.sock
+  privileged: true
+  use_sudo: false
+  hostname: "simple"
+  username: root
 
 provisioner:
   name: ansible_push
@@ -18,15 +15,29 @@ provisioner:
   diff: true
   verbose: 'vv'
 
-transport:
-  username: root
-  password: smartvm
-
 platforms:
-  - name: cfme-5.9
+  - name: manageiq-gaprindashvili-2
     driver:
-      image_ref: cfme-rhos-5.9.0.20-1
-      flavor_ref: m1.medium
+      run_command: /usr/sbin/init
+      run_options: --tty -e 'container=docker'
+      image: abraverm/manageiq:gaprindashvili-2
+      platform: centos
+      publish_all: true
+      provision_command:
+        - rm -rf /etc/fstab
+        - sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+        - systemctl enable sshd
+        - /usr/bin/systemctl disable appliance-initialize evmserverd evminit evm-watchdog miqvmstat miqtop
+        - rm -rf /var/www/miq/vmdb/certs/*
+      volume:
+        - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      forward:
+        - 443
+        - 5432
+      run_options:
+        tmpfs:
+          - /var/opt/rh/rh-postgresql95/lib/pgsql
+
 verifier:
   name: inspec
 
@@ -86,6 +97,8 @@ suites:
         - database-01
 
   - name: database-replicate
+    driver:
+      instance_name: database-primary
     provisioner:
       playbook: "test/integration/database/ansible/replicate.yml"
     verifier:
@@ -96,6 +109,9 @@ suites:
         - database-06
 
   - name: database-failover
+    driver:
+      instance_name: database-standby
+      links: database-primary:database-primary
     provisioner:
       playbook: "test/integration/database/ansible/failover.yml"
     verifier:
@@ -105,6 +121,10 @@ suites:
         - database-06
 
   - name: database-external
+    driver:
+      links:
+        - database-primary:database-primary
+        - database-standby:database-standby
     provisioner:
       playbook: "test/integration/database/ansible/external.yml"
     verifier:
