@@ -143,7 +143,25 @@ suites:
       controls:
         - key-01
 
+  - name: key-master
+    driver:
+      instance_name: key-master
+    provisioner:
+      playbook: "test/integration/key/ansible/master.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/key
+      controls:
+        - key-01
 
-# TODO:
-# - name: key-import
-
+  - name: key-slave
+    driver:
+      instance_name: key-slave
+      links: key-master:key-master
+    provisioner:
+      playbook: "test/integration/key/ansible/slave.yml"
+    verifier:
+      inspec_tests:
+        - path: test/integration/key
+      controls:
+        - key-01

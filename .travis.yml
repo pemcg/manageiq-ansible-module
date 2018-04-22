@@ -18,6 +18,7 @@ env:
   - TEST="database-restore"
   - TEST="database-reset"
   - TEST="database-standalone"
+  - TEST="key-integration"
   - TEST="key-create"
 
 cache: pip
@@ -43,7 +44,7 @@ install:
   - bundle exec kitchen --version
 
 script:
-  - if [ "$TEST" = "database-integration" ]; then "test/${TEST}.sh"; else bundle exec kitchen test -t always $TEST; fi
+  - if [[ $TEST =~ .*integration.* ]]; then "test/${TEST}.sh"; else bundle exec kitchen test -t always $TEST; fi
 
 after_failure:
   - ls -la logs/

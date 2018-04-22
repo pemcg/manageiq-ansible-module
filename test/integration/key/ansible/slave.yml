@@ -1,0 +1,15 @@
+---
+- name: "Import Key"
+  hosts: all
+  become: true
+  tasks:
+    - wait_for:
+        host: key-master
+        port: 22
+    - name: import key
+      manageiq_key:
+        fetch_key: true
+        hostname: key-master
+        sshlogin: root
+        sshpassword: smartvm
+        cli_path: /usr/local/bin/appliance_console_cli
