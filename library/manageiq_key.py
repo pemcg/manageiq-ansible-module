@@ -110,12 +110,12 @@ def main():
 
     result, env, err = module.run_command('/usr/bin/env')
     result, out, err = module.run_command(cmd)
-    if err != '':
+    if err != '' or 'Failed' in out:
         if 'No such file or directory' in out:
             module.fail_json("Encryption key doesn't exists on host")
         module.fail_json(
             msg="Command'%s' Failed on '%s' with evironment '%s'" % (
-                cmd, err, env))
+                cmd, err+out, env))
     changed = True
 
     module.exit_json(changed=changed, cmd=cmd, stdout=out, stderr=err)
