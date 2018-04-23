@@ -10,6 +10,7 @@ env:
   global:
     - LANG="en_US.UTF-8"
     - ANSIBLE_CONFIG="test/ansible.cfg"
+    - PRIVILEGED="true"
   matrix:
   - TEST="database-integration"
   - TEST="database-present"
@@ -19,6 +20,7 @@ env:
   - TEST="database-reset"
   - TEST="database-standalone"
   - TEST="key-integration"
+  - TEST="key-integration-fail-credentials"
   - TEST="key-create"
 
 cache: pip
