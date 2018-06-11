@@ -301,13 +301,14 @@ def main():
         valid, msg = db_state_validate(module, system_state,
                                        configured=False, exists=False)
         if valid:
-            if state in ['present', 'internal']:
+            if state == 'internal':
                 cmd += " --internal --region=%d" % module.params['region']
-            else:
+            elif state == 'external':
                 cmd += " --hostname=%s" % module.params['hostname']
                 with open("%s/REGION" % VMDB, 'w') as region_file:
                     region_file.write(str(region))
-
+            if module.params['standalone']:
+                cmd += " --standalone"
             for arg in VALUED_ARGS:
                 if module.params[arg] is not None and module.params[arg] != '':
                     cmd += " --{}={}".format(arg, module.params[arg])
@@ -322,12 +323,6 @@ def main():
             with open("%s/REGION" % VMDB, 'w') as region_file:
                 region_file.write(str(region))
 
-        if module.params['standalone']:
-            cmd += " --standalone"
-
-        if module.params['db_hourly_maintenance']:
-            cmd += " --db-hourly-maintenance"
-
         for arg in VALUED_ARGS:
             if module.params[arg] is not None and module.params[arg] != '':
                 cmd += " --{}={}".format(arg, module.params[arg])
@@ -338,7 +333,6 @@ def main():
         module.exit_json(changed=changed, cmd=cmd, stdout=stdout, stderr=stderr)
     else:
         module.fail_json(msg="unknown state: '%s'" % state)
-
 
 if __name__ == "__main__":
     main()
